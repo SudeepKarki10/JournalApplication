@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -60,13 +61,31 @@ public class JournalEntryService {
         return journalEntryRepository.findById(new ObjectId(id));
     }
 
-    public void deleteById(String id) {
-        journalEntryRepository.deleteById(new ObjectId(id));
+    @Transactional
+    public void deleteById(String id, String username) {
+        ObjectId objectId = new ObjectId(id);
+
+        // First, remove the reference from user's journal entries list
+        Optional<User> userOptional = userService.findByUserName(username);
+        if (userOptional.isPresent()) {
+            User user = userOptional.get();
+            List<JournalEntry> journalEntries = user.getJournalEntries();
+
+            // Remove the journal entry with matching ObjectId
+            journalEntries.removeIf(entry -> entry.getId().equals(objectId));
+
+            // Save the updated user
+            userService.saveUser(user);
+        }
+        // Then delete the journal entry from the collection
+        journalEntryRepository.deleteById(objectId);
     }
 
-    public JournalEntry updateEntry(String id, JournalEntry newEntry) {
+
+    public JournalEntry updateEntry(String username, String id, JournalEntry newEntry) {
         Optional<JournalEntry> oldEntryOptional = journalEntryRepository.findById(new ObjectId(id));
-        if (oldEntryOptional.isPresent()) {
+        Optional<User> optionalUser = userService.findByUserName(username);
+        if (optionalUser.isPresent() && oldEntryOptional.isPresent()) {
             JournalEntry existingEntry = oldEntryOptional.get();
             existingEntry.setTitle(newEntry.getTitle() != null ? newEntry.getTitle() : existingEntry.getTitle());
             existingEntry.setContent(newEntry.getContent() != null ? newEntry.getContent() : existingEntry.getContent());
@@ -74,4 +93,5 @@ public class JournalEntryService {
         }
         return null;
     }
+
 }

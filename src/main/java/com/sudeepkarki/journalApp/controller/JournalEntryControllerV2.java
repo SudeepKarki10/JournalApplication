@@ -26,13 +26,6 @@ public class JournalEntryControllerV2 {
         return new ResponseEntity<>(entries, HttpStatus.OK);
     }
 
-    @GetMapping("id/{myId}")
-    public ResponseEntity<JournalEntry> getJournalEntryById(@PathVariable String myId) {
-        Optional<JournalEntry> journalEntry = journalEntryService.getById(myId);
-        return journalEntry.map(entry -> new ResponseEntity<>(entry, HttpStatus.OK))
-                .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
-    }
-
     @PostMapping("/{username}")
     public ResponseEntity<JournalEntry> saveEntry(@RequestBody JournalEntry entry, @PathVariable String username) {
         JournalEntry saved = journalEntryService.saveEntry(entry, username);
@@ -40,21 +33,31 @@ public class JournalEntryControllerV2 {
     }
 
 
-    @DeleteMapping("id/{myId}")
-    public ResponseEntity<Void> deleteEntry(@PathVariable String myId) {
+    @GetMapping("id/{myId}")
+    public ResponseEntity<JournalEntry> getJournalEntryById(@PathVariable String myId) {
+        Optional<JournalEntry> journalEntry = journalEntryService.getById(myId);
+        return journalEntry.map(entry -> new ResponseEntity<>(entry, HttpStatus.OK))
+                .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    }
+
+
+
+    @DeleteMapping("/{username}/id/{myId}")
+    public ResponseEntity<Void> deleteEntry(@PathVariable String myId, @PathVariable String username) {
         Optional<JournalEntry> existingEntry = journalEntryService.getById(myId);
         if (existingEntry.isPresent()) {
-            journalEntryService.deleteById(myId);
+            journalEntryService.deleteById(myId, username);
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
-    @PutMapping("id/{myId}")
+    @PutMapping("/{username}/id/{myId}")
     public ResponseEntity<JournalEntry> updateEntry(
+            @PathVariable String username,
             @PathVariable String myId,
             @RequestBody JournalEntry newEntry) {
-        JournalEntry updatedEntry = journalEntryService.updateEntry(myId, newEntry);
+        JournalEntry updatedEntry = journalEntryService.updateEntry(username, myId, newEntry);
         if (updatedEntry != null) {
             return new ResponseEntity<>(updatedEntry, HttpStatus.OK);
         }
