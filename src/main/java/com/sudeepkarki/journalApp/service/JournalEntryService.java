@@ -70,7 +70,6 @@ public class JournalEntryService {
         if (userOptional.isPresent()) {
             User user = userOptional.get();
             List<JournalEntry> journalEntries = user.getJournalEntries();
-
             // Remove the journal entry with matching ObjectId
             journalEntries.removeIf(entry -> entry.getId().equals(objectId));
 
