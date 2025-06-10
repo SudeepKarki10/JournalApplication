@@ -4,8 +4,10 @@ import com.sudeepkarki.journalApp.entity.User;
 import com.sudeepkarki.journalApp.repository.UserRepository;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -15,7 +17,11 @@ public class UserService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired  // Properly inject the PasswordEncoder bean
+    private PasswordEncoder passwordEncoder;
+
     public void saveUser(User user) {
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
         userRepository.save(user);
     }
 
@@ -34,6 +40,13 @@ public class UserService {
             throw new Exception("Password cannot be null or empty");
         }
 
+        // Set default role if roles is null or empty
+        if (user.getRoles() == null || user.getRoles().isEmpty()) {
+            user.setRoles(Arrays.asList("USER"));
+        }
+
+        // Encode password before saving
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
         userRepository.save(user);
     }
 
@@ -49,7 +62,6 @@ public class UserService {
         return Optional.ofNullable(userRepository.findByUserName(userName));
     }
 
-
     public void deleteById(String id) {
         userRepository.deleteById(new ObjectId(id));
     }
@@ -59,7 +71,9 @@ public class UserService {
         if (existingUser.isPresent()) {
             User userToUpdate = existingUser.get();
             userToUpdate.setUserName(newUser.getUserName());
-            userToUpdate.setPassword(newUser.getPassword());
+            if (newUser.getPassword() != null && !newUser.getPassword().trim().isEmpty()) {
+                userToUpdate.setPassword(passwordEncoder.encode(newUser.getPassword()));
+            }
             userRepository.save(userToUpdate);
             return Optional.of(userToUpdate);
         }
