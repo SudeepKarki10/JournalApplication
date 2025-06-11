@@ -32,8 +32,7 @@ public class SecurityConfig {
                 // Configure authorization
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/health-check", "/register", "/login", "/error").permitAll()
-                        // Specifically allow ONLY POST requests to /user for creation
-                        .requestMatchers(HttpMethod.POST, "/user").permitAll()
+                        // if request is not from above permitted url it needs to be authenticated
                         .anyRequest().authenticated()
                 )
 
@@ -47,6 +46,8 @@ public class SecurityConfig {
 
                 // Optional: Enable HTTP Basic if you need it later
                 .httpBasic(httpBasic -> httpBasic.disable());
+
+
 
         return http.build();
     }

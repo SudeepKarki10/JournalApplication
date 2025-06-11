@@ -8,6 +8,8 @@ import com.sudeepkarki.journalApp.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,7 +24,9 @@ public class UserController {
 
     @Autowired
     private JournalEntryService journalEntryService;
+/*
 
+//These are previous methods which were coded before the authentication and authorization part
     @GetMapping
     public ResponseEntity<List<User>> getAll() {
         List<User> entries = userService.getAll();
@@ -38,31 +42,29 @@ public class UserController {
         return users.map(user -> new ResponseEntity<>(user, HttpStatus.OK)).orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
-    @PostMapping
-    public ResponseEntity<User> saveEntry(@RequestBody User user) {
-        try {
-            userService.createUser(user);
-            return new ResponseEntity<>(user, HttpStatus.CREATED);
-        } catch (Exception e) {
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        }
-    }
 
-    @DeleteMapping("id/{myId}")
-    public ResponseEntity<Void> deleteEntry(@PathVariable String myId) {
-        Optional<User> existingUser = userService.getById(myId);
-        if (existingUser.isPresent()) {
-            userService.deleteById(myId);
+
+    } */
+
+    @DeleteMapping
+    public ResponseEntity<Void> deleteEntryByUsername() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        if (username != null) {
+            userService.deleteUser(username);
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
-    @PutMapping("/{username}")
-    public ResponseEntity<User> updateUser(@PathVariable String username, @RequestBody User newUser) {
-        // Here, username will be "sudeep"
-        // newUser will be the JSON object you send in the request body
-        Optional<User> updatedUser = userService.updateEntry(username, newUser);
+    @PutMapping
+    public ResponseEntity<User> updateUser(@RequestBody User newUser) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        Optional<User> updatedUser = null;
+        if (username != null) {
+            updatedUser = userService.updateEntry(newUser);
+        }
         return updatedUser.map(user -> new ResponseEntity<>(user, HttpStatus.OK))
                 .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND)); // <-- This line is key
     }

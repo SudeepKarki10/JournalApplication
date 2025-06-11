@@ -4,6 +4,8 @@ import com.sudeepkarki.journalApp.entity.User;
 import com.sudeepkarki.journalApp.repository.UserRepository;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -20,10 +22,10 @@ public class UserService {
     @Autowired  // Properly inject the PasswordEncoder bean
     private PasswordEncoder passwordEncoder;
 
-    public void saveUser(User user) {
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-        userRepository.save(user);
-    }
+//    public void saveUser(User user) {
+//        user.setPassword(passwordEncoder.encode(user.getPassword()));
+//        userRepository.save(user);
+//    }
 
     public void createUser(User user) throws Exception {
         // Check if user already exists
@@ -50,30 +52,29 @@ public class UserService {
         userRepository.save(user);
     }
 
-    public List<User> getAll() {
-        return userRepository.findAll();
-    }
 
-    public Optional<User> getById(String id) {
-        return userRepository.findById(new ObjectId(id));
-    }
 
     public Optional<User> findByUserName(String userName) {
         return Optional.ofNullable(userRepository.findByUserName(userName));
     }
 
-    public void deleteById(String id) {
-        userRepository.deleteById(new ObjectId(id));
+
+    public void deleteUser(String username) {
+        userRepository.deleteByUserName(username);
     }
 
-    public Optional<User> updateEntry(String username, User newUser) {
-        Optional<User> existingUser = Optional.ofNullable(userRepository.findByUserName(username));
-        if (existingUser.isPresent()) {
-            User userToUpdate = existingUser.get();
+    public Optional<User> updateEntry(User newUser) {
+//        Optional<User> existingUser = Optional.ofNullable(userRepository.findByUserName(username));
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        if (username != null) {
+            User userToUpdate = userRepository.findByUserName(username);
+            //Now username and password from the DB repository is updated
             userToUpdate.setUserName(newUser.getUserName());
             if (newUser.getPassword() != null && !newUser.getPassword().trim().isEmpty()) {
                 userToUpdate.setPassword(passwordEncoder.encode(newUser.getPassword()));
             }
+            //Persisted the change on the UserRepository
             userRepository.save(userToUpdate);
             return Optional.of(userToUpdate);
         }
