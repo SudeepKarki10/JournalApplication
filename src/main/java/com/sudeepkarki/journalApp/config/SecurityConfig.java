@@ -4,6 +4,7 @@ import com.sudeepkarki.journalApp.service.UserDetailsServicesImpl;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -44,13 +45,22 @@ public class SecurityConfig {
                 // Disable form login (this prevents the redirect loop)
                 .formLogin(form -> form.disable())
 
-                // Optional: Enable HTTP Basic if you need it later
-                .httpBasic(httpBasic -> httpBasic.disable());
+                // Enable HTTP Basic Authentication
+                .httpBasic(httpBasic -> httpBasic.realmName("Journal API"));
 
 
 
         return http.build();
     }
+
+    @Bean
+    public DaoAuthenticationProvider authenticationProvider() {
+        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+        authProvider.setUserDetailsService(userDetailsService);
+        authProvider.setPasswordEncoder(passwordEncoder());
+        return authProvider;
+    }
+
 
     @Bean
     public AuthenticationManager authenticationManager(

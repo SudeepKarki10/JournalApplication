@@ -2,15 +2,16 @@ package com.sudeepkarki.journalApp.service;
 
 import com.sudeepkarki.journalApp.entity.User;
 import com.sudeepkarki.journalApp.repository.UserRepository;
-import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -19,18 +20,24 @@ public class UserService {
     @Autowired
     private UserRepository userRepository;
 
-    @Autowired  // Properly inject the PasswordEncoder bean
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
-//    public void saveUser(User user) {
-//        user.setPassword(passwordEncoder.encode(user.getPassword()));
-//        userRepository.save(user);
-//    }
+    /**
+     * Save user without encoding password (used internally when password is already encoded)
+     */
+    public void saveUser(User user) {
+        userRepository.save(user);
+    }
 
+    /**
+     * Create a new user with validation and password encoding
+     */
+    @Transactional
     public void createUser(User user) throws Exception {
         // Check if user already exists
-        Optional<User> existingUser = Optional.ofNullable(userRepository.findByUserName(user.getUserName()));
-        if (existingUser.isPresent()) {
+        User existingUser = userRepository.findByUserName(user.getUserName());
+        if (existingUser != null) {
             throw new Exception("User with username '" + user.getUserName() + "' already exists");
         }
 
@@ -52,32 +59,62 @@ public class UserService {
         userRepository.save(user);
     }
 
-
-
+    /**
+     * Find user by username
+     */
     public Optional<User> findByUserName(String userName) {
         return Optional.ofNullable(userRepository.findByUserName(userName));
     }
 
-
+    /**
+     * Delete user by username
+     */
+    @Transactional
     public void deleteUser(String username) {
         userRepository.deleteByUserName(username);
     }
 
+    /**
+     * Update user information for the currently authenticated user
+     */
+    @Transactional
     public Optional<User> updateEntry(User newUser) {
-//        Optional<User> existingUser = Optional.ofNullable(userRepository.findByUserName(username));
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
+
         if (username != null) {
             User userToUpdate = userRepository.findByUserName(username);
-            //Now username and password from the DB repository is updated
-            userToUpdate.setUserName(newUser.getUserName());
-            if (newUser.getPassword() != null && !newUser.getPassword().trim().isEmpty()) {
-                userToUpdate.setPassword(passwordEncoder.encode(newUser.getPassword()));
+            if (userToUpdate != null) {
+                // Update username if provided
+                if (newUser.getUserName() != null && !newUser.getUserName().trim().isEmpty()) {
+                    userToUpdate.setUserName(newUser.getUserName());
+                }
+
+                // Update password if provided
+                if (newUser.getPassword() != null && !newUser.getPassword().trim().isEmpty()) {
+                    userToUpdate.setPassword(passwordEncoder.encode(newUser.getPassword()));
+                }
+
+                // Save updated user
+                userRepository.save(userToUpdate);
+                return Optional.of(userToUpdate);
             }
-            //Persisted the change on the UserRepository
-            userRepository.save(userToUpdate);
-            return Optional.of(userToUpdate);
         }
         return Optional.empty();
+    }
+
+    /**
+     * Handle successful login and return response
+     */
+    public Map<String, String> handleSuccessfulLogin() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Login successful");
+        response.put("username", username);
+        response.put("timestamp", java.time.LocalDateTime.now().toString());
+
+        return response;
     }
 }
